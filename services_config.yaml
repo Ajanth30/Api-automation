@@ -1,0 +1,26 @@
+excel_path: "D:/CodeLantic/R and D/Api automation/API_TestCases_Generated.xlsx"
+collection_name: "API Tests from Excel"
+gateway_base_url: "http://localhost:8080" # Gateway URL used with Path in Excel
+
+auth:
+  endpoint: "/api/auth/login"
+  method: "POST"
+  body:
+    username: "admin"
+    password: "admin123"
+  header_name: "Authorization"
+  header_prefix: "Bearer "
+  token_path: "token"
+
+email:
+  recipients:
+    - "ajanthan@codelantic.com"
+  subject: "API test results"
+  from: "developers.notification@bankoyo.com"
+  smtp:
+    host: "email-smtp.eu-west-2.amazonaws.com"
+    port: 587
+    username: "AKIAZ7Z3ZDO2NG4OUDY7"
+    password: "BBe7dK2D7iGOFTbOBcBthgHvkQxmZUk5zVIK6pNdzAeG"
+    use_tls: true
+    use_ssl: false

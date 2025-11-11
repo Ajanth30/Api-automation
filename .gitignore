@@ -1,0 +1,41 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual environments
+.env/
+.venv/
+venv/
+env/
+
+# Distribution / packaging
+build/
+dist/
+*.egg-info/
+
+# Logs and reports
+*.log
+logs/
+newman_results.json
+*_report.html
+
+# OS-generated files
+.DS_Store
+Thumbs.db
+
+# Excel outputs
+*_results.xlsx
+
+# Node / npm artifacts
+node_modules/
+package-lock.json
+
+# IDE / Editor
+.idea/
+.vscode/
+
+# Jenkins workspace artifacts
+.jenkins/
+
+
