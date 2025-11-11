@@ -20,7 +20,7 @@ email:
   smtp:
     host: "email-smtp.eu-west-2.amazonaws.com"
     port: 587
-    username: "AKIAZ7Z3ZDO2NG4OUDY7"
-    password: "BBe7dK2D7iGOFTbOBcBthgHvkQxmZUk5zVIK6pNdzAeG"
+    username: 
+    password: 
     use_tls: true
     use_ssl: false
