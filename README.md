@@ -1,10 +1,30 @@
 # Dynamic API Test Generator
 
-This project dynamically generates Postman collections, runs Newman, and creates Excel reports for multiple services using:
+Automates API regression testing from Excel definitions by:
 
-- Controller-based YAML test definitions
-- Swagger API documentation
-- Dynamic paths per service
+- Reading test cases from a shared Excel file
+- Generating a Postman collection on the fly
+- Executing the collection with Newman
+- Writing back pass/fail status and producing reports
+
+Ideal for use in CI (e.g., Jenkins) so every build pulls the latest GitLab changes, regenerates tests, and emails results.
+
+---
+
+## Requirements
+
+- Python 3.10 or newer
+- Node.js 16+ (for Newman)
+- `npm install -g newman`
+- Git client (for Jenkins checkout/pull)
+- Access to the Excel workbook referenced in `services_config.yaml`
+- Optional: SMTP account for email notifications
+
+Install Python dependencies:
+
+```bash
+pip install -r requirements.txt
+```
 
 ---
 
@@ -12,63 +32,87 @@ This project dynamically generates Postman collections, runs Newman, and creates
 
 ```
 .
-├── src/                           # Source code modules
-│   ├── __init__.py               # Package initialization
-│   ├── main.py                   # Main entry point
-│   ├── swagger_fetcher.py        # Fetch Swagger documentation
-│   ├── test_data_loader.py       # Load test data from APIs/files
-│   ├── postman_generator.py      # Generate Postman collections
-│   ├── excel_generator.py        # Generate Excel reports
-│   └── newman_runner.py          # Run Newman CLI tool
-├── run.py                        # Root-level entry point (recommended)
-├── generate_tests.py             # Legacy monolithic entry point (kept for reference)
-├── services_config.yaml          # Service configuration
-├── requirements.txt              # Python dependencies
-└── README.md                     # This file
+├── src/
+│   ├── main.py                  # Entry point
+│   ├── excel_postman_generator.py
+│   ├── newman_runner.py
+│   ├── auth_client.py
+│   └── emailer.py
+├── services_config.yaml         # Environment + email configuration
+├── requirements.txt
+└── README.md
 ```
 
-## Setup
+Sample output artifacts (`*_results.xlsx`, `*_postman_collection.json`, `newman_results.json`) are produced during runs and should be git-ignored.
 
-1. Install Python dependencies:
+---
 
-```bash
-pip install -r requirements.txt
-```
+## Configuration (`services_config.yaml`)
 
-2. Configure services in `services_config.yaml`
+Key settings:
 
-## Usage
+- `excel_path`: Full path to the master test workbook.
+- `collection_name`: Friendly name for the generated Postman collection.
+- `gateway_base_url`: Optional override for all request hosts.
+- `auth`: Optional block to fetch a bearer token before running tests.
+  - `base_url`, `endpoint`, `method`, `headers`, `body`
+  - `token_path`: Dot-path to extract the token from the JSON response
+  - `header_name` / `header_prefix`: How to inject the token in requests
+- `email`: Optional SMTP settings to send results.
+  - `recipients`: List of email addresses
+  - `from`: Sender address
+  - `smtp.host`, `smtp.port`, `smtp.username`, `smtp.password`
+  - `smtp.use_tls` / `smtp.use_ssl`
 
-### Option 1: Run from root (Recommended)
+If Jenkins injects credentials as environment variables, reference them in YAML using `"${ENV_VAR_NAME}"`.
 
-```bash
-python run.py
-```
+---
 
-### Option 2: Run from src directory
-
-```bash
-python src/main.py
-```
-
-### Option 3: Run as module
+## Running Locally
 
 ```bash
 python -m src.main
 ```
 
-## Modules
+The script will:
 
-- **swagger_fetcher.py**: Fetches Swagger/OpenAPI documentation from API endpoints
-- **test_data_loader.py**: Loads test data from API endpoints or local files
-- **postman_generator.py**: Generates Postman collection JSON from Swagger and test data
-- **excel_generator.py**: Creates Excel reports with test results and summaries
-- **newman_runner.py**: Executes Newman CLI to run Postman collections
-- **main.py**: Orchestrates the entire workflow
+- Validate/authenticate (if configured)
+- Generate `<collection_name>_postman_collection.json`
+- Execute Newman via `newman_runner.py`
+- Update a copy of the Excel file with `ActualStatus`/`Status`
+- Print the paths of generated artifacts
 
-## Output
+---
 
-The tool generates:
-- `{service_name}_postman_collection.json` - Postman collection file
-- `{service_name}_swagger_testdata_summary.xlsx` - API endpoints summary
-- `newman_report.html` - Newman test execution report
+## Jenkins Integration Overview
+
+1. Install prerequisites on the Jenkins node (Python, Git, Node.js, Newman).
+2. Checkout the GitLab repository in the job.
+3. Run `pip install -r requirements.txt`.
+4. Execute `python -m src.main` (optionally inside a virtualenv).
+5. Use Jenkins credentials binding so `services_config.yaml` can access SMTP or auth secrets.
+6. Archive generated reports or publish them via email.
+
+Refer to Jenkins job examples in your CI folder or ask the infra team for the shared pipeline if available.
+
+---
+
+## Email Notifications
+
+With the `email` section configured, the `emailer.send_results_email` helper attaches:
+
+- Generated Postman collection
+- Excel results workbook (with pass/fail coloring)
+
+Console logs include `✉️ Results email sent successfully.` on success. Failures print the underlying SMTP exception.
+
+---
+
+## Troubleshooting
+
+- **Authentication errors**: ensure `auth.base_url`, `endpoint`, and `token_path` match the API. Inspect console logs for `AuthError`.
+- **Newman not found**: check that `newman` (or `newman.cmd` on Windows) is on the PATH for the user running Jenkins.
+- **Excel locked**: the script writes to `<excel_path>_results.xlsx`. Make sure Excel isn’t holding the file open.
+- **Emails blocked**: confirm firewall rules allow SMTP traffic and credentials are correct.
+
+For verbose Newman diagnostics, temporarily edit `src/newman_runner.py` to add `--verbose` to the CLI command.
